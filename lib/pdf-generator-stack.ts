@@ -1,16 +1,29 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
+import path from "path";
 
 export class PdfGeneratorStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const apiProxy = new NodejsFunction(this, "api-proxy", {
+      entry: path.join(__dirname, "../src/server.ts"),
+      handler: "main",
+      memorySize: 256,
+      timeout: cdk.Duration.seconds(15),
+      runtime: Runtime.NODEJS_18_X,
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'PdfGeneratorQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const api = new LambdaRestApi(this, "api", {
+      handler: apiProxy,   
+    });
+
+    new cdk.CfnOutput(this, "api-url", {
+      description: "API Gateway URL",
+      value: api.url,
+    })
   }
 }
